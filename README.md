@@ -12,4 +12,4 @@ Select the track you want to edit in the Max for live plugin. This track must co
 
 Now you can create and modify clip in launchpad user mode, as a push drum sequencer.
 
-See thi [video](ww.youtube.com) for a complete demo.
+See this [video](ww.youtube.com) for a complete demo.
