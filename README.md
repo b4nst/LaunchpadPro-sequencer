@@ -3,7 +3,7 @@ A maxforlive device to set a step sequencer on the user mode of the launchpad pr
 
 ## Instalation
 
-Just dl the LPProStepSeq.amxd files, and add it to your max for live library.
+Just dl the LPProStepSeq.amxd file, and add it to your max for live library.
 
 Once in live, create a new Midi Track. Set midi in/out to your Launchpad pro user canal (default is 6) and set monitor to in. Add the LPProStepSeq Max MIDI Effect.
 
