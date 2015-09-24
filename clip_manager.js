@@ -30,6 +30,14 @@ function focus()
 		setColor(_selectedClip + 99,"green");
 }
 
+function delete_clip(clip)
+{
+	if( _clipSlots[clip] == null)
+		return;
+
+	_clipSlots[clip].call("delete_clip");
+}
+
 function set_track(arg)
 {
 	post("Clip Manager set track with ", arg, "\n"); 
@@ -43,6 +51,7 @@ function list()
 	var a = arrayfromargs(arguments);
 	if(a[1] == 0)
 	{
+		post(a[0]);
 		if( _clipSlots[a[0]-1] == null)
 			return;
 		
@@ -52,7 +61,7 @@ function list()
 			
 		setSelectedClip(a[0]);
 		if(_clipSlots[a[0]-1].get("has_clip") == 0){
-			_clipSlots[a[0]-1].call("create_clip",4);
+			_clipSlots[a[0]-1].call("create_clip",8);
 		}
 		setColor(_selectedClip + 99, "green");
 	}

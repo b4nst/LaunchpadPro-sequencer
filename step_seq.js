@@ -1,3 +1,5 @@
+outlets=2;
+
 var _currentClipIndex = -1;
 var _currentNote = 36;
 var _velocityLock = 0;
@@ -18,6 +20,9 @@ var _steps = new Array(32);
 
 var _observedTrack = 0;
 
+var _currentLayout = -1;
+var _nbLayouts = 1;
+
 	
 function clip_change(arg)
 {
@@ -25,7 +30,7 @@ function clip_change(arg)
 	if(_currentClipIndex == -1){
 		delete _currentClip;
 		_currentClip = null;
-		setOff();
+		change_layout(-1);
 		return;
 	}
 	else
@@ -33,8 +38,17 @@ function clip_change(arg)
 		_currentClip = new LiveAPI(positionCallback, "live_set tracks " + _observedTrack.toString() + " clip_slots " + _currentClipIndex.toString() + " clip");
 		_currentClip.property = "playing_position";
 		calculateClipLength();
-		refresh_seq();
+		change_layout(0);
 	}	
+}
+
+function change_layout(value)
+{
+	if(value < _nbLayouts){
+		_currentLayout = value;		
+		outlet(1,"change_current_layout", _currentLayout);
+		refresh_seq();
+	}
 }
 
 function calculateClipLength()
@@ -42,7 +56,11 @@ function calculateClipLength()
 	_loopStart = _currentClip.get("loop_start");
 	_clipLength = _currentClip.get("loop_end") - _loopStart;
 	if(_clipLength > 8 )
+	{		
+		_nbLayouts = Math.ceil(_clipLength / 8);
+		outlet(1,"change_nb_layout",_nbLayouts);
 		_clipLength = 8.0;
+	}
 	_divider = 32/_clipLength;
 	_oneStep = 1/_divider;
 }
@@ -74,15 +92,39 @@ function positionCallback(args)
 {
 	if(args[0] != "playing_position" || _currentClip == null || _currentClip.get("is_playing") == 0)
 		return;
-	
+		
+	//Reset previous pad
 	if(_steps[_currentStepPosition]){
 		setColor(_currentStepPosition, _blueGradient[parseInt(_steps[_currentStepPosition]*8/128)]);
 	}
 	else{
 		setColor(_currentStepPosition, "off");
 	}
-	_currentStepPosition = parseInt(args[1]*_divider);
-	setColor(_currentStepPosition, "green");
+		
+	var newStepPosition = parseInt(args[1]*_divider);
+	
+	if(newStepPosition < (32*(_currentLayout + 1)) && newStepPosition >= 32*_currentLayout){		
+		_currentStepPosition = newStepPosition - (_currentLayout*32);
+		setColor(_currentStepPosition, "green");
+		outlet(1,"playing_layout",_currentLayout);
+	}
+	else
+	{
+		outlet(1,"playing_layout",parseInt(newStepPosition/32));
+	}
+}
+
+function delete_note(note, full)
+{
+	if(_currentClip == null)
+		return;
+	
+	var from_time = full ? 0 : _currentLayout*8;
+    var time_span = full ? _nbLayouts*8 : 8;
+    _currentClip.call("remove_notes",from_time,note,time_span,1);
+	
+	if(note == _currentNote)
+		refresh_seq();
 }
 
 function refresh_seq()
@@ -91,13 +133,13 @@ function refresh_seq()
 		return;	
 		
 	initSteps();
-	var notes = _currentClip.call("get_notes",0,_currentNote,_clipLength,1);
+	var notes = _currentClip.call("get_notes",_currentLayout*8,_currentNote,_clipLength,1);
 	notes.shift(); //remove notes
 	var nbNote = notes.shift(); //Get num note
 	var step;
 	var velocity;
 	for(i = 0; i < nbNote; i++){
-		step = parseInt(notes[(i*6)+2]*_divider);
+		step = parseInt(notes[(i*6)+2]*_divider) - _currentLayout*32;
 		velocity = notes[(i*6)+4];
 		_steps[step] = velocity;
 		setColor(step, "blue" + parseInt(velocity*8/128 + 1).toString());
@@ -121,20 +163,24 @@ function bang()
 
 function list()
 {
-	if(_currentClip == null)
-		return;	
+	if(_currentClip == null){
+		setOff();		
+		return;
+	}
 	
 	var a = arrayfromargs(arguments);
 	
 	if(a[1] == 0)
 		return; //Release pad doesn't matter
+		
+	var beatPressed = parseFloat((a[0]/_divider) + (_currentLayout*8));
 	
 	if(_steps[a[0]])
 	{
 		//Delete step
 		_steps[a[0]] = 0;
 		setColor(a[0],"off");
-		_currentClip.call("remove_notes",a[0]/_divider,_currentNote,1/_divider,1);
+		_currentClip.call("remove_notes",beatPressed,_currentNote,1/_divider,1);
 	}
 	else
 	{
@@ -144,7 +190,7 @@ function list()
 		setColor(a[0],"blue" + parseInt(velib*8/128 + 1).toString());
 		_currentClip.call("set_notes");
 		_currentClip.call("notes",1);
-		_currentClip.call("note",_currentNote.toString(),parseFloat((a[0]/_divider)).toFixed(4).toString(),(1/_divider).toString(),velib.toString(),"0");
+		_currentClip.call("note",_currentNote.toString(),beatPressed.toFixed(4).toString(),(1/_divider).toString(),velib.toString(),"0");
 		_currentClip.call("done");
 	}
 }

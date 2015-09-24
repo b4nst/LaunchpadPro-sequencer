@@ -1,4 +1,4 @@
-outlets = 3;
+outlets = 4;
 
 var _velocityLock;
 var _colors = { "off":0, "green":25, "light_green":24 , "red":5 };
@@ -15,6 +15,7 @@ function focus(){
 		setColor(120,"light_green");
 		
 	setColor(114,"light_green");
+	setColor(111,"light_green");
 }
 
 function Shift(arg)
@@ -31,6 +32,11 @@ function Undo(arg)
 
 function Delete(arg)
 {
+	if(arg > 0)
+	{
+		setColor(111,"red");
+		outlet(3,1);
+	}
 }
 
 function Quantise(arg)
